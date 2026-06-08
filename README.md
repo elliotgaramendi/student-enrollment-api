@@ -1,66 +1,157 @@
 # student-enrollment-api
 
-Student enrollment REST API built with Java 17, Spring Boot 3, Maven, Spring Web, Spring Data JPA, MySQL, Jakarta Validation, Springdoc OpenAPI, JUnit 5, MockMvc, and H2 for automated tests.
+Student enrollment REST API built with Java 17, Spring Boot 3, Maven, Spring Web, Spring Data JPA, MySQL 8, Jakarta Validation, Springdoc OpenAPI, JUnit 5, MockMvc, and H2 for automated tests.
 
-This first stage only provides the executable Spring Boot base. Business logic, REST endpoints, persistence adapters, Docker, and custom OpenAPI metadata will be added in later stages.
+## Quick Start
+
+Run the full backend and MySQL stack with Docker:
+
+```bash
+cp .env.example .env
+docker compose --env-file .env up --build
+```
+
+Then open Swagger UI:
+
+```text
+http://localhost:8080/swagger-ui/index.html
+```
+
+Quick API smoke test:
+
+```bash
+curl -i -X POST http://localhost:8080/api/v1/students \
+  -H "Content-Type: application/json" \
+  -d '{
+    "firstName": "Elliot",
+    "lastName": "Garamendi",
+    "email": "elliot@example.com"
+  }'
+```
+
+```bash
+curl http://localhost:8080/api/v1/students
+```
+
+Stop the containers:
+
+```bash
+docker compose --env-file .env down
+```
+
+If `.env` is missing, create it again with:
+
+```bash
+cp .env.example .env
+```
+
+The project follows a simple hexagonal architecture:
+
+- `domain`: business models and ports without Spring or JPA annotations.
+- `application`: use case services and application exceptions.
+- `infrastructure.adapter.in.web`: REST controllers, DTOs, validation, and web mappers.
+- `infrastructure.adapter.out.persistence`: JPA entities, repositories, adapters, and persistence mappers.
+- `infrastructure.exception`: global REST exception handling.
 
 ## Requirements
 
 - Java 17
 - Maven 3.9+
+- Docker and Docker Compose for MySQL or full containerized runtime
+
+## Environment Variables
+
+Copy the example file before running the application with Docker Compose:
+
+```bash
+cp .env.example .env
+```
+
+The local `.env` file is ignored by Git. The versioned `.env.example` contains safe academic defaults:
+
+```text
+APP_PORT=8080
+MYSQL_PORT=3306
+MYSQL_DATABASE=student_enrollment_db
+MYSQL_USER=CHANGE_ME_DB_USER
+MYSQL_PASSWORD=CHANGE_ME_DB_PASSWORD
+MYSQL_ROOT_PASSWORD=CHANGE_ME_ROOT_PASSWORD
+DB_URL=jdbc:mysql://mysql:3306/student_enrollment_db
+DB_USERNAME=CHANGE_ME_DB_USER
+DB_PASSWORD=CHANGE_ME_DB_PASSWORD
+JPA_DDL_AUTO=update
+```
+
+`application.yml` also provides defaults, so `mvn spring-boot:run` can run against a Docker MySQL database through `localhost`.
 
 ## Commands
 
-```bash
-mvn test
-mvn spring-boot:run
-```
-
-Tests use H2 in memory, so they do not require Docker or MySQL:
+Run automated tests with H2:
 
 ```bash
 mvn test
 ```
 
-## MySQL With Docker
-
-You do not need to install MySQL locally. Start MySQL with Docker Compose:
+Start only MySQL with Docker Compose:
 
 ```bash
 docker compose up -d mysql
 ```
 
-Then run the Spring Boot application locally:
+Run the application locally against Docker MySQL:
 
 ```bash
 mvn spring-boot:run
 ```
 
-When the app runs on your machine, it connects to Docker MySQL through `localhost`:
-
-```text
-jdbc:mysql://localhost:3306/student_enrollment_db
-```
-
-To run both the application and MySQL inside Docker:
+Run the application and MySQL fully containerized:
 
 ```bash
-docker compose up --build
+docker compose --env-file .env up --build
 ```
 
-When the app runs inside Docker Compose, it connects to MySQL through the service name `mysql`:
+Validate the Compose configuration:
 
-```text
-jdbc:mysql://mysql:3306/student_enrollment_db
+```bash
+docker compose --env-file .env.example config
 ```
 
-The default runtime configuration is prepared through environment variables:
+## Demo Data
 
-```text
-DB_URL=jdbc:mysql://localhost:3306/student_enrollment_db
-DB_USERNAME=student_user
-DB_PASSWORD=student_password
-JPA_DDL_AUTO=update
+The project includes API-based scripts to reset and seed demo data. Keep the backend running first:
+
+```bash
+docker compose --env-file .env up -d --build
+```
+
+Clear all students and enrollments:
+
+```bash
+bash scripts/reset-data.sh
+```
+
+Load 8 demo students and 8 enrollments:
+
+```bash
+bash scripts/seed-data.sh
+```
+
+Verify students:
+
+```bash
+curl http://localhost:8080/api/v1/students
+```
+
+Verify enrollments:
+
+```bash
+curl http://localhost:8080/api/v1/student-enrollments
+```
+
+Use a different backend URL without editing scripts:
+
+```bash
+BASE_URL=http://localhost:8080 bash scripts/seed-data.sh
 ```
 
 ## Swagger UI
@@ -71,13 +162,82 @@ When the application is running, Swagger UI is available at:
 http://localhost:8080/swagger-ui/index.html
 ```
 
-At this stage there are no business endpoints yet.
+## REST API
+
+Base path:
+
+```text
+/api/v1
+```
+
+### Students
+
+```text
+POST   /api/v1/students
+GET    /api/v1/students
+GET    /api/v1/students/{id}
+PUT    /api/v1/students/{id}
+DELETE /api/v1/students/{id}
+GET    /api/v1/students/{id}/enrollments
+```
+
+Create a student:
+
+```bash
+curl -i -X POST http://localhost:8080/api/v1/students \
+  -H "Content-Type: application/json" \
+  -d '{
+    "firstName": "Elliot",
+    "lastName": "Garamendi",
+    "email": "elliot@example.com"
+  }'
+```
+
+### Student Enrollments
+
+```text
+POST   /api/v1/student-enrollments
+GET    /api/v1/student-enrollments
+GET    /api/v1/student-enrollments?studentId=1
+GET    /api/v1/student-enrollments/{id}
+PUT    /api/v1/student-enrollments/{id}
+DELETE /api/v1/student-enrollments/{id}
+```
+
+Create an enrollment:
+
+```bash
+curl -i -X POST http://localhost:8080/api/v1/student-enrollments \
+  -H "Content-Type: application/json" \
+  -d '{
+    "studentId": 1,
+    "courseCode": "MATH-101",
+    "enrollmentDate": "2026-06-07"
+  }'
+```
+
+## Validation And Errors
+
+Request DTOs use Jakarta Validation:
+
+- Student names are required and limited to 100 characters.
+- Student email is required, valid, unique, and limited to 150 characters.
+- Enrollment `studentId` is required and positive.
+- Enrollment `courseCode` is required and limited to 50 characters.
+- Enrollment date is required and must not be in the future.
+
+Errors use Spring `ProblemDetail`:
+
+- `400 Bad Request` for validation, malformed JSON, and invalid path/query values.
+- `404 Not Found` for missing students or enrollments.
+- `409 Conflict` for duplicated student emails.
+- `500 Internal Server Error` for unexpected failures.
 
 ## Local Skills
 
 This project includes local AI-agent skills:
 
-- `.agents/skills/spring-boot-skill`: external Spring Boot skill from the `skills.sh` ecosystem.
+- `.agents/skills/spring-boot-skill`: Spring Boot implementation guidance.
 - `.skills/spring-boot-hexagonal`: project-specific hexagonal architecture rules.
 - `.skills/rest-api-quality`: project-specific REST API quality rules.
 - `.skills/docker-mysql`: project-specific Docker/MySQL workflow rules.
