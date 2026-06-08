@@ -1,5 +1,6 @@
 target/
 .git/
 .DS_Store
+.env
 .agents/
 .skills/
