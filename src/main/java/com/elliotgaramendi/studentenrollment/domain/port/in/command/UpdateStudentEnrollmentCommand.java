@@ -1,4 +1,4 @@
-package com.example.studentenrollment.domain.port.in.command;
+package com.elliotgaramendi.studentenrollment.domain.port.in.command;
 
 import java.time.LocalDate;
 

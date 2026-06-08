@@ -1,4 +1,4 @@
-package com.example.studentenrollment.domain.model;
+package com.elliotgaramendi.studentenrollment.domain.model;
 
 import java.time.LocalDate;
 

@@ -1,6 +1,6 @@
-package com.example.studentenrollment.domain.port.out;
+package com.elliotgaramendi.studentenrollment.domain.port.out;
 
-import com.example.studentenrollment.domain.model.StudentEnrollment;
+import com.elliotgaramendi.studentenrollment.domain.model.StudentEnrollment;
 
 import java.util.List;
 import java.util.Optional;

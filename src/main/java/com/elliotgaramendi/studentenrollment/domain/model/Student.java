@@ -1,4 +1,4 @@
-package com.example.studentenrollment.domain.model;
+package com.elliotgaramendi.studentenrollment.domain.model;
 
 public class Student {
 

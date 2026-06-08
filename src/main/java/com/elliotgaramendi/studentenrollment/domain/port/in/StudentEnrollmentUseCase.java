@@ -1,8 +1,8 @@
-package com.example.studentenrollment.domain.port.in;
+package com.elliotgaramendi.studentenrollment.domain.port.in;
 
-import com.example.studentenrollment.domain.model.StudentEnrollment;
-import com.example.studentenrollment.domain.port.in.command.CreateStudentEnrollmentCommand;
-import com.example.studentenrollment.domain.port.in.command.UpdateStudentEnrollmentCommand;
+import com.elliotgaramendi.studentenrollment.domain.model.StudentEnrollment;
+import com.elliotgaramendi.studentenrollment.domain.port.in.command.CreateStudentEnrollmentCommand;
+import com.elliotgaramendi.studentenrollment.domain.port.in.command.UpdateStudentEnrollmentCommand;
 
 import java.util.List;
 

@@ -11,7 +11,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.example</groupId>
+    <groupId>com.elliotgaramendi</groupId>
     <artifactId>student-enrollment-api</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>student-enrollment-api</name>
