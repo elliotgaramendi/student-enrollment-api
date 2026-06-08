@@ -1,7 +1,7 @@
 ---
 name: spring-boot-skill
 description: >
-  Build Spring Boot 4.x applications following the best practices. 
+  General Spring Boot reference skill. For student-enrollment-api, prefer the project-specific .skills rules first because this project uses Java 17, Spring Boot 3.5.x, Maven, Docker/MySQL, H2 tests, and no Lombok.
   Use this skill:
     * When developing Spring Boot applications using Spring MVC, Spring Data JPA, Spring Modulith, Spring Security
     * To create recommended Spring Boot package structure
@@ -16,7 +16,7 @@ description: >
 
 # Spring Boot Skill
 
-Apply the practices below when developing Spring Boot applications. Read the linked reference only when working on that area.
+Apply the practices below as general Spring Boot guidance. In this repository, project-specific rules in `.skills/*` take precedence.
 
 ## Maven pom.xml Configuration
 

@@ -1,76 +1,65 @@
 # student-enrollment-api
 
-Student enrollment REST API built with Java 17, Spring Boot 3, Maven, Spring Web, Spring Data JPA, MySQL 8, Jakarta Validation, Springdoc OpenAPI, JUnit 5, MockMvc, and H2 for automated tests.
+Student enrollment REST API built with Java 17, Spring Boot 3.5, Maven, Spring Web, Spring Data JPA, MySQL 8, Docker, Springdoc OpenAPI, Jakarta Validation, JUnit 5, MockMvc, H2, and JaCoCo.
+
+The project uses a simple hexagonal architecture: the domain stays framework-free, application services implement use cases, REST controllers expose HTTP endpoints, and persistence adapters connect the application to MySQL through JPA.
+
+## Tech Stack
+
+- Java 17
+- Spring Boot 3.5.x
+- Maven
+- Spring Web
+- Spring Data JPA
+- MySQL 8
+- Docker and Docker Compose
+- Springdoc OpenAPI / Swagger UI
+- Jakarta Validation
+- JUnit 5, MockMvc, H2
+- JaCoCo
+- No Lombok
 
 ## Quick Start
 
-Run the production-like backend and MySQL stack with Docker:
+Run the complete backend and MySQL stack with Docker:
 
 ```bash
 cp .env.example .env
 docker compose --env-file .env up -d --build
 ```
 
-Then open Swagger UI:
+Open Swagger UI:
 
 ```text
 http://localhost:8080/swagger-ui/index.html
 ```
 
-Quick API smoke test:
+Smoke test:
 
 ```bash
-curl -i -X POST http://localhost:8080/api/v1/students \
-  -H "Content-Type: application/json" \
-  -d '{
-    "firstName": "Elliot",
-    "lastName": "Garamendi",
-    "email": "elliot@example.com"
-  }'
-```
-
-```bash
+curl http://localhost:8080/actuator/health
 curl http://localhost:8080/api/v1/students
 ```
 
-Stop the containers:
+Stop the stack:
 
 ```bash
 docker compose --env-file .env down
 ```
 
-If `.env` is missing, create it again with:
+You do not need MySQL installed locally. Docker Compose provides MySQL.
+
+## Environment
+
+Create a local `.env` file from the safe example:
 
 ```bash
 cp .env.example .env
 ```
 
-The project follows a simple hexagonal architecture:
+`.env` is ignored by Git. Keep real credentials only there.
 
-- `domain`: business models and ports without Spring or JPA annotations.
-- `application`: use case services and application exceptions.
-- `infrastructure.adapter.in.web`: REST controllers, DTOs, validation, and web mappers.
-- `infrastructure.adapter.out.persistence`: JPA entities, repositories, adapters, and persistence mappers.
-- `infrastructure.exception`: global REST exception handling.
-
-## Requirements
-
-- Docker and Docker Compose
-- Java 17 and Maven 3.9+ only if you want to run the app outside Docker
-
-You do not need a local MySQL installation. Docker Compose provides MySQL for both development and production-like runs.
-
-## Environment Variables
-
-Copy the example file before running the application with Docker Compose:
-
-```bash
-cp .env.example .env
-```
-
-The local `.env` file is ignored by Git. The versioned `.env.example` contains safe academic defaults:
-
-```text
+```env
 APP_PORT=8080
 MYSQL_PORT=3306
 MYSQL_DATABASE=student_enrollment_db
@@ -83,160 +72,54 @@ DB_PASSWORD=CHANGE_ME_DB_PASSWORD
 JPA_DDL_AUTO=update
 ```
 
-`application.yml` also provides defaults, so `mvn spring-boot:run` can run against a Docker MySQL database through `localhost`.
+Inside Docker, the backend connects to MySQL using hostname `mysql`. If you run Spring Boot directly on your machine, use `localhost` for the database URL.
 
-## Commands
+## Development With Docker
 
-Run automated tests with H2:
-
-```bash
-mvn test
-```
-
-Run the same test suite without installing Maven locally:
-
-```bash
-docker run --rm \
-  -v "$PWD":/workspace \
-  -v student-enrollment-m2:/root/.m2 \
-  -w /workspace \
-  maven:3.9.11-eclipse-temurin-17 \
-  mvn test
-```
-
-Start only MySQL with Docker Compose:
-
-```bash
-docker compose up -d mysql
-```
-
-Run the application locally against Docker MySQL:
-
-```bash
-mvn spring-boot:run
-```
-
-Run the application and MySQL fully containerized in production-like mode:
-
-```bash
-docker compose --env-file .env up -d --build
-```
-
-Run the application in Docker development mode with source watch and automatic app restart:
+Run the app in Docker development mode with source sync and automatic restart:
 
 ```bash
 docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml watch
 ```
 
-Java does not behave like Vite hot module replacement. In this project, Docker development mode syncs source changes into the container and restarts the Spring Boot process, which recompiles the app without rebuilding the full production image.
+Java does not use frontend-style hot module replacement like Vite. This setup syncs source changes into the container and restarts Spring Boot automatically.
 
-Follow app logs:
+Follow logs:
 
 ```bash
 docker compose --env-file .env logs -f app
 ```
 
-Stop containers while keeping the MySQL data volume:
-
-```bash
-docker compose --env-file .env down
-```
-
-Stop containers and delete the MySQL data volume:
+Delete containers and the MySQL data volume:
 
 ```bash
 docker compose --env-file .env down -v
 ```
 
-Validate the Compose configuration:
-
-```bash
-docker compose --env-file .env.example config
-```
-
-## Automated Tests
-
-Automated tests run with JUnit 5, MockMvc, Spring Boot Test, Mockito, AssertJ, Spring Data JPA test slices, and H2 in MySQL compatibility mode.
-
-The test profile uses an in-memory H2 database to keep CRUD and integration tests fast:
+## Architecture
 
 ```text
-jdbc:h2:mem:student_enrollment_test;MODE=MySQL
+src/main/java/com/elliotgaramendi/studentenrollment
+├── domain
+│   ├── model
+│   └── port
+├── application
+│   ├── exception
+│   └── service
+└── infrastructure
+    ├── adapter/in/web
+    ├── adapter/out/persistence
+    ├── config
+    └── exception
 ```
 
-The suite covers:
+Rules:
 
-- application services and business rules;
-- persistence adapters and JPA mappings;
-- REST API flows for students and enrollments;
-- validation and `ProblemDetail` error responses;
-- OpenAPI/Swagger documentation endpoints;
-- Spring application context startup.
-
-JaCoCo generates a coverage report every time tests run:
-
-```text
-target/site/jacoco/index.html
-target/site/jacoco/jacoco.xml
-```
-
-Docker/MySQL is still used for runtime integration validation: container startup, environment variables, MySQL connectivity, healthcheck, Swagger, and real HTTP smoke tests. H2 keeps automated CRUD tests lightweight; Docker/MySQL confirms the packaged application works in its deployment-like environment.
-
-## Demo Data
-
-The project includes API-based scripts to reset and seed demo data. Keep the backend running first:
-
-```bash
-docker compose --env-file .env up -d --build
-```
-
-Clear all students and enrollments:
-
-```bash
-bash scripts/reset-data.sh
-```
-
-Load 8 demo students and 8 enrollments:
-
-```bash
-bash scripts/seed-data.sh
-```
-
-Verify students:
-
-```bash
-curl http://localhost:8080/api/v1/students
-```
-
-Verify enrollments:
-
-```bash
-curl http://localhost:8080/api/v1/student-enrollments
-```
-
-Use a different backend URL without editing scripts:
-
-```bash
-BASE_URL=http://localhost:8080 bash scripts/seed-data.sh
-```
-
-## Swagger UI
-
-When the application is running, Swagger UI is available at:
-
-```text
-http://localhost:8080/swagger-ui/index.html
-```
-
-## Health Check
-
-Docker uses the Spring Boot Actuator health endpoint to check whether the backend is ready:
-
-```text
-http://localhost:8080/actuator/health
-```
-
-This endpoint is technical infrastructure and is not part of the academic CRUD API.
+- Controllers call input ports, not repositories.
+- Application services depend on output ports.
+- Persistence adapters implement output ports.
+- DTOs are used only for HTTP input/output.
+- Domain models do not use Spring, JPA, validation, or framework annotations.
 
 ## REST API
 
@@ -246,15 +129,26 @@ Base path:
 /api/v1
 ```
 
-### Students
+Students:
 
 ```text
-POST   /api/v1/students
-GET    /api/v1/students
-GET    /api/v1/students/{id}
-PUT    /api/v1/students/{id}
-DELETE /api/v1/students/{id}
-GET    /api/v1/students/{id}/enrollments
+POST   /students
+GET    /students
+GET    /students/{id}
+PUT    /students/{id}
+DELETE /students/{id}
+GET    /students/{id}/enrollments
+```
+
+Student enrollments:
+
+```text
+POST   /student-enrollments
+GET    /student-enrollments
+GET    /student-enrollments?studentId=1
+GET    /student-enrollments/{id}
+PUT    /student-enrollments/{id}
+DELETE /student-enrollments/{id}
 ```
 
 Create a student:
@@ -269,17 +163,6 @@ curl -i -X POST http://localhost:8080/api/v1/students \
   }'
 ```
 
-### Student Enrollments
-
-```text
-POST   /api/v1/student-enrollments
-GET    /api/v1/student-enrollments
-GET    /api/v1/student-enrollments?studentId=1
-GET    /api/v1/student-enrollments/{id}
-PUT    /api/v1/student-enrollments/{id}
-DELETE /api/v1/student-enrollments/{id}
-```
-
 Create an enrollment:
 
 ```bash
@@ -287,33 +170,122 @@ curl -i -X POST http://localhost:8080/api/v1/student-enrollments \
   -H "Content-Type: application/json" \
   -d '{
     "studentId": 1,
-    "courseCode": "MATH-101",
-    "enrollmentDate": "2026-06-07"
+    "courseCode": "AI-ENGINEER",
+    "enrollmentDate": "2026-01-31"
   }'
+```
+
+## Swagger And Health
+
+Swagger UI:
+
+```text
+http://localhost:8080/swagger-ui/index.html
+```
+
+OpenAPI JSON:
+
+```text
+http://localhost:8080/v3/api-docs
+```
+
+Health check:
+
+```text
+http://localhost:8080/actuator/health
 ```
 
 ## Validation And Errors
 
-Request DTOs use Jakarta Validation:
+Request validation uses Jakarta Validation:
 
-- Student names are required and limited to 100 characters.
-- Student email is required, valid, unique, and limited to 150 characters.
-- Enrollment `studentId` is required and positive.
-- Enrollment `courseCode` is required and limited to 50 characters.
-- Enrollment date is required and must not be in the future.
+- student names: required, max 100 characters;
+- email: required, valid, unique, max 150 characters;
+- `studentId`: required and positive;
+- `courseCode`: required, max 50 characters;
+- `enrollmentDate`: required and not future.
 
 Errors use Spring `ProblemDetail`:
 
-- `400 Bad Request` for validation, malformed JSON, and invalid path/query values.
-- `404 Not Found` for missing students or enrollments.
-- `409 Conflict` for duplicated student emails.
+- `400 Bad Request` for validation, malformed JSON, and invalid path/query values;
+- `404 Not Found` for missing students or enrollments;
+- `409 Conflict` for duplicate emails;
 - `500 Internal Server Error` for unexpected failures.
 
-## Local Skills
+## Demo Data
 
-This project includes local AI-agent skills:
+Keep the backend running, then reset and seed demo data through the API:
 
-- `.agents/skills/spring-boot-skill`: Spring Boot implementation guidance.
-- `.skills/spring-boot-hexagonal`: project-specific hexagonal architecture rules.
-- `.skills/rest-api-quality`: project-specific REST API quality rules.
-- `.skills/docker-mysql`: project-specific Docker/MySQL workflow rules.
+```bash
+bash scripts/reset-data.sh
+bash scripts/seed-data.sh
+```
+
+Verify:
+
+```bash
+curl http://localhost:8080/api/v1/students
+curl http://localhost:8080/api/v1/student-enrollments
+```
+
+Use another backend URL if needed:
+
+```bash
+BASE_URL=http://localhost:8080 bash scripts/seed-data.sh
+```
+
+## Automated Tests
+
+Run tests locally:
+
+```bash
+mvn test
+```
+
+Run tests without installing Maven:
+
+```bash
+docker run --rm \
+  -v "$PWD":/workspace \
+  -v student-enrollment-m2:/root/.m2 \
+  -w /workspace \
+  maven:3.9.11-eclipse-temurin-17 \
+  mvn test
+```
+
+Tests use H2 in MySQL compatibility mode:
+
+```text
+jdbc:h2:mem:student_enrollment_test;MODE=MySQL
+```
+
+The suite covers service rules, persistence adapters, REST flows, validation errors, OpenAPI documentation, and Spring context startup.
+
+JaCoCo report:
+
+```text
+target/site/jacoco/index.html
+target/site/jacoco/jacoco.xml
+```
+
+Docker/MySQL validates runtime integration: container startup, environment variables, MySQL connectivity, healthcheck, Swagger, and real HTTP smoke tests. H2 keeps automated CRUD tests fast.
+
+## Useful Commands
+
+```bash
+docker compose --env-file .env.example config
+docker compose --env-file .env.example -f docker-compose.yml -f docker-compose.dev.yml config
+docker compose --env-file .env up -d --build
+docker compose --env-file .env logs -f app
+docker compose --env-file .env down
+docker compose --env-file .env down -v
+```
+
+## Local AI Skills
+
+This repository includes local AI-agent instructions:
+
+- `.skills/spring-boot-hexagonal`: project architecture rules.
+- `.skills/rest-api-quality`: REST, validation, errors, and OpenAPI rules.
+- `.skills/docker-mysql`: Docker, MySQL, `.env`, and runtime workflow rules.
+- `.agents/skills/spring-boot-skill`: general Spring Boot reference skill.
