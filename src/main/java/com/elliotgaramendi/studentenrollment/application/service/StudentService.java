@@ -1,5 +1,6 @@
 package com.elliotgaramendi.studentenrollment.application.service;
 
+import com.elliotgaramendi.studentenrollment.application.exception.DuplicateResourceException;
 import com.elliotgaramendi.studentenrollment.application.exception.ResourceNotFoundException;
 import com.elliotgaramendi.studentenrollment.domain.model.Student;
 import com.elliotgaramendi.studentenrollment.domain.port.in.StudentUseCase;
@@ -27,6 +28,7 @@ public class StudentService implements StudentUseCase {
 
     @Override
     public Student createStudent(CreateStudentCommand command) {
+        ensureEmailIsAvailable(command.email(), null);
         Student student = new Student(null, command.firstName(), command.lastName(), command.email());
         return studentRepositoryPort.save(student);
     }
@@ -44,6 +46,7 @@ public class StudentService implements StudentUseCase {
     @Override
     public Student updateStudent(Long id, UpdateStudentCommand command) {
         Student student = findStudentOrThrow(id);
+        ensureEmailIsAvailable(command.email(), id);
         student.updateProfile(command.firstName(), command.lastName(), command.email());
         return studentRepositoryPort.save(student);
     }
@@ -61,5 +64,13 @@ public class StudentService implements StudentUseCase {
     private Student findStudentOrThrow(Long id) {
         return studentRepositoryPort.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + id));
+    }
+
+    private void ensureEmailIsAvailable(String email, Long currentStudentId) {
+        studentRepositoryPort.findByEmail(email)
+                .filter(existingStudent -> !existingStudent.getId().equals(currentStudentId))
+                .ifPresent(existingStudent -> {
+                    throw new DuplicateResourceException("Student email already exists: " + email);
+                });
     }
 }

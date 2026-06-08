@@ -1,5 +1,6 @@
 package com.elliotgaramendi.studentenrollment.application.service;
 
+import com.elliotgaramendi.studentenrollment.application.exception.DuplicateResourceException;
 import com.elliotgaramendi.studentenrollment.application.exception.ResourceNotFoundException;
 import com.elliotgaramendi.studentenrollment.domain.model.Student;
 import com.elliotgaramendi.studentenrollment.domain.port.in.command.CreateStudentCommand;
@@ -42,6 +43,7 @@ class StudentServiceTest {
     void createsStudentThroughRepositoryPort() {
         CreateStudentCommand command = new CreateStudentCommand("Elliot", "Garamendi", "elliot@example.com");
         Student savedStudent = new Student(1L, "Elliot", "Garamendi", "elliot@example.com");
+        when(studentRepositoryPort.findByEmail("elliot@example.com")).thenReturn(Optional.empty());
         when(studentRepositoryPort.save(org.mockito.ArgumentMatchers.any(Student.class))).thenReturn(savedStudent);
 
         Student result = studentService.createStudent(command);
@@ -93,6 +95,7 @@ class StudentServiceTest {
         Student student = new Student(1L, "Old", "Name", "old@example.com");
         UpdateStudentCommand command = new UpdateStudentCommand("Elliot", "Garamendi", "elliot@example.com");
         when(studentRepositoryPort.findById(1L)).thenReturn(Optional.of(student));
+        when(studentRepositoryPort.findByEmail("elliot@example.com")).thenReturn(Optional.empty());
         when(studentRepositoryPort.save(student)).thenReturn(student);
 
         Student result = studentService.updateStudent(1L, command);
@@ -101,6 +104,30 @@ class StudentServiceTest {
         assertThat(result.getLastName()).isEqualTo("Garamendi");
         assertThat(result.getEmail()).isEqualTo("elliot@example.com");
         verify(studentRepositoryPort).save(student);
+    }
+
+    @Test
+    void throwsDuplicateResourceWhenCreatingStudentWithExistingEmail() {
+        CreateStudentCommand command = new CreateStudentCommand("Elliot", "Garamendi", "elliot@example.com");
+        when(studentRepositoryPort.findByEmail("elliot@example.com"))
+                .thenReturn(Optional.of(new Student(1L, "Existing", "Student", "elliot@example.com")));
+
+        assertThatThrownBy(() -> studentService.createStudent(command))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessage("Student email already exists: elliot@example.com");
+    }
+
+    @Test
+    void throwsDuplicateResourceWhenUpdatingStudentWithAnotherStudentEmail() {
+        Student student = new Student(1L, "Old", "Name", "old@example.com");
+        UpdateStudentCommand command = new UpdateStudentCommand("Elliot", "Garamendi", "elliot@example.com");
+        when(studentRepositoryPort.findById(1L)).thenReturn(Optional.of(student));
+        when(studentRepositoryPort.findByEmail("elliot@example.com"))
+                .thenReturn(Optional.of(new Student(2L, "Other", "Student", "elliot@example.com")));
+
+        assertThatThrownBy(() -> studentService.updateStudent(1L, command))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessage("Student email already exists: elliot@example.com");
     }
 
     @Test
