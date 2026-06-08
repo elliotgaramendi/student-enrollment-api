@@ -4,11 +4,11 @@ Student enrollment REST API built with Java 17, Spring Boot 3, Maven, Spring Web
 
 ## Quick Start
 
-Run the full backend and MySQL stack with Docker:
+Run the production-like backend and MySQL stack with Docker:
 
 ```bash
 cp .env.example .env
-docker compose --env-file .env up --build
+docker compose --env-file .env up -d --build
 ```
 
 Then open Swagger UI:
@@ -55,9 +55,10 @@ The project follows a simple hexagonal architecture:
 
 ## Requirements
 
-- Java 17
-- Maven 3.9+
-- Docker and Docker Compose for MySQL or full containerized runtime
+- Docker and Docker Compose
+- Java 17 and Maven 3.9+ only if you want to run the app outside Docker
+
+You do not need a local MySQL installation. Docker Compose provides MySQL for both development and production-like runs.
 
 ## Environment Variables
 
@@ -104,10 +105,36 @@ Run the application locally against Docker MySQL:
 mvn spring-boot:run
 ```
 
-Run the application and MySQL fully containerized:
+Run the application and MySQL fully containerized in production-like mode:
 
 ```bash
-docker compose --env-file .env up --build
+docker compose --env-file .env up -d --build
+```
+
+Run the application in Docker development mode with source watch and automatic app restart:
+
+```bash
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.dev.yml watch
+```
+
+Java does not behave like Vite hot module replacement. In this project, Docker development mode syncs source changes into the container and restarts the Spring Boot process, which recompiles the app without rebuilding the full production image.
+
+Follow app logs:
+
+```bash
+docker compose --env-file .env logs -f app
+```
+
+Stop containers while keeping the MySQL data volume:
+
+```bash
+docker compose --env-file .env down
+```
+
+Stop containers and delete the MySQL data volume:
+
+```bash
+docker compose --env-file .env down -v
 ```
 
 Validate the Compose configuration:
@@ -161,6 +188,16 @@ When the application is running, Swagger UI is available at:
 ```text
 http://localhost:8080/swagger-ui/index.html
 ```
+
+## Health Check
+
+Docker uses the Spring Boot Actuator health endpoint to check whether the backend is ready:
+
+```text
+http://localhost:8080/actuator/health
+```
+
+This endpoint is technical infrastructure and is not part of the academic CRUD API.
 
 ## REST API
 
