@@ -8,13 +8,8 @@ spring:
     password: ${DB_PASSWORD:student_password}
   jpa:
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:none}
+      ddl-auto: ${JPA_DDL_AUTO:update}
     open-in-view: false
-    database-platform: org.hibernate.dialect.MySQLDialect
-    properties:
-      hibernate:
-        boot:
-          allow_jdbc_metadata_access: false
 
 server:
   port: 8080
