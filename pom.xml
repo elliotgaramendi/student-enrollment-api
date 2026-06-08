@@ -20,6 +20,7 @@
 
     <properties>
         <java.version>17</java.version>
+        <jacoco.version>0.8.13</jacoco.version>
         <springdoc.version>2.8.17</springdoc.version>
     </properties>
 
@@ -84,6 +85,31 @@
                 <configuration>
                     <excludeDevtools>true</excludeDevtools>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <configuration>
+                    <excludes>
+                        <exclude>**/StudentEnrollmentApiApplication.class</exclude>
+                        <exclude>**/infrastructure/config/**</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

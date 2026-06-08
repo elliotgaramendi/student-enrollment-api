@@ -124,6 +124,16 @@ class StudentEnrollmentServiceTest {
     }
 
     @Test
+    void throwsResourceNotFoundWhenListingEnrollmentsForMissingStudent() {
+        when(studentRepositoryPort.existsById(99L)).thenReturn(false);
+
+        assertThatThrownBy(() -> studentEnrollmentService.listEnrollmentsByStudentId(99L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Student not found with id: 99");
+        verifyNoMoreInteractions(studentEnrollmentRepositoryPort);
+    }
+
+    @Test
     void updatesExistingEnrollment() {
         StudentEnrollment enrollment = new StudentEnrollment(10L, 1L, "OLD-101", LocalDate.of(2026, 6, 7));
         UpdateStudentEnrollmentCommand command = new UpdateStudentEnrollmentCommand(

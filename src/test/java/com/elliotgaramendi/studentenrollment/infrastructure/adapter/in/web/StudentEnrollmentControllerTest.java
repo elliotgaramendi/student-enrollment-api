@@ -1,5 +1,7 @@
 package com.elliotgaramendi.studentenrollment.infrastructure.adapter.in.web;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -26,8 +28,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class StudentEnrollmentControllerTest {
 
+    private static final LocalDate ENROLLMENT_DATE = LocalDate.of(2026, 1, 31);
+
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
     void createsEnrollment() throws Exception {
@@ -35,13 +42,13 @@ class StudentEnrollmentControllerTest {
 
         mockMvc.perform(post("/api/v1/student-enrollments")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(enrollmentJson(studentId, "MATH-101", LocalDate.now())))
+                        .content(enrollmentJson(studentId, "MATH-101", ENROLLMENT_DATE)))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", org.hamcrest.Matchers.containsString("/api/v1/student-enrollments/")))
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.studentId").value(studentId))
                 .andExpect(jsonPath("$.courseCode").value("MATH-101"))
-                .andExpect(jsonPath("$.enrollmentDate").value(LocalDate.now().toString()));
+                .andExpect(jsonPath("$.enrollmentDate").value(ENROLLMENT_DATE.toString()));
     }
 
     @Test
@@ -96,6 +103,7 @@ class StudentEnrollmentControllerTest {
     void updatesEnrollment() throws Exception {
         Long studentId = createStudent("Ada", "Lovelace", "ada.enrollment.update@example.com");
         Long enrollmentId = createEnrollment(studentId, "MATH-101");
+        LocalDate updatedDate = LocalDate.of(2026, 2, 1);
 
         mockMvc.perform(put("/api/v1/student-enrollments/{id}", enrollmentId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -104,10 +112,11 @@ class StudentEnrollmentControllerTest {
                                   "courseCode": "CS-101",
                                   "enrollmentDate": "%s"
                                 }
-                                """.formatted(LocalDate.now())))
+                                """.formatted(updatedDate)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(enrollmentId))
-                .andExpect(jsonPath("$.courseCode").value("CS-101"));
+                .andExpect(jsonPath("$.courseCode").value("CS-101"))
+                .andExpect(jsonPath("$.enrollmentDate").value(updatedDate.toString()));
     }
 
     @Test
@@ -131,7 +140,21 @@ class StudentEnrollmentControllerTest {
     void returnsNotFoundForMissingReferencedStudent() throws Exception {
         mockMvc.perform(post("/api/v1/student-enrollments")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(enrollmentJson(999999L, "MATH-101", LocalDate.now())))
+                        .content(enrollmentJson(999999L, "MATH-101", ENROLLMENT_DATE)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.detail").value("Student not found with id: 999999"));
+    }
+
+    @Test
+    void returnsNotFoundWhenFilteringEnrollmentsByMissingStudentId() throws Exception {
+        mockMvc.perform(get("/api/v1/student-enrollments").param("studentId", "999999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.detail").value("Student not found with id: 999999"));
+    }
+
+    @Test
+    void returnsNotFoundForNestedEnrollmentsRouteWithMissingStudent() throws Exception {
+        mockMvc.perform(get("/api/v1/students/{id}/enrollments", 999999L))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.detail").value("Student not found with id: 999999"));
     }
@@ -144,6 +167,28 @@ class StudentEnrollmentControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Validation Error"))
                 .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void returnsBadRequestForInvalidStudentIdQueryParam() throws Exception {
+        mockMvc.perform(get("/api/v1/student-enrollments").param("studentId", "abc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.errors").isArray());
+    }
+
+    @Test
+    void returnsBadRequestForMalformedEnrollmentJson() throws Exception {
+        mockMvc.perform(post("/api/v1/student-enrollments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "studentId": 1,
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.detail").value("Request body is missing or malformed"));
     }
 
     private Long createStudent(String firstName, String lastName, String email) throws Exception {
@@ -161,19 +206,19 @@ class StudentEnrollmentControllerTest {
                 .getResponse()
                 .getContentAsString();
 
-        return Long.valueOf(response.replaceAll(".*\\\"id\\\":(\\d+).*", "$1"));
+        return readId(response);
     }
 
     private Long createEnrollment(Long studentId, String courseCode) throws Exception {
         String response = mockMvc.perform(post("/api/v1/student-enrollments")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(enrollmentJson(studentId, courseCode, LocalDate.now())))
+                        .content(enrollmentJson(studentId, courseCode, ENROLLMENT_DATE)))
                 .andExpect(status().isCreated())
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
 
-        return Long.valueOf(response.replaceAll(".*\\\"id\\\":(\\d+).*", "$1"));
+        return readId(response);
     }
 
     private String enrollmentJson(Long studentId, String courseCode, LocalDate enrollmentDate) {
@@ -184,5 +229,10 @@ class StudentEnrollmentControllerTest {
                   "enrollmentDate": "%s"
                 }
                 """.formatted(studentId, courseCode, enrollmentDate);
+    }
+
+    private Long readId(String json) throws Exception {
+        JsonNode response = objectMapper.readTree(json);
+        return response.get("id").asLong();
     }
 }

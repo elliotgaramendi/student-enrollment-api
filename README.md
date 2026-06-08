@@ -93,6 +93,17 @@ Run automated tests with H2:
 mvn test
 ```
 
+Run the same test suite without installing Maven locally:
+
+```bash
+docker run --rm \
+  -v "$PWD":/workspace \
+  -v student-enrollment-m2:/root/.m2 \
+  -w /workspace \
+  maven:3.9.11-eclipse-temurin-17 \
+  mvn test
+```
+
 Start only MySQL with Docker Compose:
 
 ```bash
@@ -142,6 +153,34 @@ Validate the Compose configuration:
 ```bash
 docker compose --env-file .env.example config
 ```
+
+## Automated Tests
+
+Automated tests run with JUnit 5, MockMvc, Spring Boot Test, Mockito, AssertJ, Spring Data JPA test slices, and H2 in MySQL compatibility mode.
+
+The test profile uses an in-memory H2 database to keep CRUD and integration tests fast:
+
+```text
+jdbc:h2:mem:student_enrollment_test;MODE=MySQL
+```
+
+The suite covers:
+
+- application services and business rules;
+- persistence adapters and JPA mappings;
+- REST API flows for students and enrollments;
+- validation and `ProblemDetail` error responses;
+- OpenAPI/Swagger documentation endpoints;
+- Spring application context startup.
+
+JaCoCo generates a coverage report every time tests run:
+
+```text
+target/site/jacoco/index.html
+target/site/jacoco/jacoco.xml
+```
+
+Docker/MySQL is still used for runtime integration validation: container startup, environment variables, MySQL connectivity, healthcheck, Swagger, and real HTTP smoke tests. H2 keeps automated CRUD tests lightweight; Docker/MySQL confirms the packaged application works in its deployment-like environment.
 
 ## Demo Data
 
