@@ -74,6 +74,13 @@ JPA_DDL_AUTO=update
 
 Inside Docker, the backend connects to MySQL using hostname `mysql`. If you run Spring Boot directly on your machine, use `localhost` for the database URL.
 
+`APP_PORT` controls the public host port used by Docker Compose. In a VPS where `8080` is already busy, use another port:
+
+```env
+APP_PORT=8084
+MYSQL_PORT=3307
+```
+
 ## Development With Docker
 
 Run the app in Docker development mode with source sync and automatic restart:
@@ -182,6 +189,14 @@ Swagger UI:
 ```text
 http://localhost:8080/swagger-ui/index.html
 ```
+
+On a VPS using another `APP_PORT`, open Swagger with that port:
+
+```text
+http://TU_IP_DEL_VPS:8084/swagger-ui/index.html
+```
+
+Swagger UI uses the same host and port from the browser URL, so requests execute against the current server instead of a hardcoded `localhost`.
 
 OpenAPI JSON:
 

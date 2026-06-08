@@ -25,7 +25,7 @@ public class OpenApiConfig {
                         .contact(new Contact()
                                 .name("Academic Project Team")))
                 .servers(List.of(new Server()
-                        .url("http://localhost:8080")
-                        .description("Local Docker or development server")));
+                        .url("/")
+                        .description("Current server")));
     }
 }

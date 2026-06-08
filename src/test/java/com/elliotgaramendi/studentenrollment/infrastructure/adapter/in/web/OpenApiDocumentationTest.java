@@ -36,7 +36,7 @@ class OpenApiDocumentationTest {
                 .andExpect(jsonPath("$.info.title").value("Student Enrollment API"))
                 .andExpect(jsonPath("$.info.version").value("v1.0.0"))
                 .andExpect(jsonPath("$.info.description").value(org.hamcrest.Matchers.containsString("hexagonal architecture")))
-                .andExpect(jsonPath("$.servers[0].url").value("http://localhost:8080"));
+                .andExpect(jsonPath("$.servers[0].url").value("/"));
     }
 
     @Test
